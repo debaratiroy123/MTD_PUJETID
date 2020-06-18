@@ -398,7 +398,7 @@ void JMEFlatTreeProducer::analyze(edm::Event const& iEvent, edm::EventSetup cons
   //----- PF jets ------------------------------
   for(pat::JetCollection::const_iterator ijet =jets->begin();ijet != jets->end(); ++ijet) {  
     bool RealJets(false);
-    double dRmin = 0.4;
+    double dRmin = 1000;
     for(reco::GenJetCollection::const_iterator igen = genjets->begin();igen != genjets->end(); ++igen) {
       float dR = deltaR(ijet->eta(),ijet->phi(),igen->eta(),igen->phi());
       if (dR < dRmin) {
@@ -406,7 +406,7 @@ void JMEFlatTreeProducer::analyze(edm::Event const& iEvent, edm::EventSetup cons
 	RealJets = true;
       }
     }
-    if (RealJets == 1 && ijet->pt() > 20) {
+    if (RealJets == 1 && ijet->pt() > 20 && dRmin < 0.2) {
       std::vector<reco::CandidatePtr> daus(ijet->daughterPtrVector());
       std::sort(daus.begin(), daus.end(), [](const reco::CandidatePtr &p1, const reco::CandidatePtr &p2) { return p1->pt() > p2->pt(); });
       //for (unsigned int i2 = 0, n = daus.size(); i2 < n && i2 <= 3; ++i2) {
@@ -416,30 +416,32 @@ void JMEFlatTreeProducer::analyze(edm::Event const& iEvent, edm::EventSetup cons
 	candtimerr_->Fill(cand.timeError(),genEvtWeight_);
 	//std::cout << cand.vertexRef().t() << " vertex refer. t check" << std::endl;
 	if (Dim4recVtxs->size() > 0 && cand.timeError() > 0 && (*Dim4recVtxs)[0].tError() > 0) {
-	  timediff_->Fill(abs(cand.time() - (*Dim4recVtxs)[0].t())/cand.timeError(),genEvtWeight_);
-	  if (abs(cand.time() - (*Dim4recVtxs)[0].t())/cand.timeError() < 3.0) {
-	    timediffless3_->Fill(abs(cand.time() - (*Dim4recVtxs)[0].t())/cand.timeError(),genEvtWeight_);
-	  }
+	  timediff_->Fill(fabs(cand.time() - (*Dim4recVtxs)[0].t())/cand.timeError(),genEvtWeight_);
 	}
-	//printf("constituent %3d: pt %6.2f, pdgId %+3d time %6.2f timeError %6.2f\n", i2,cand.pt(),cand.pdgId(),cand.time(),cand.timeError());
+	if (fabs(cand.time() - (*Dim4recVtxs)[0].t())/cand.timeError() < 3.0 || cand.timeError() < 0 || (*Dim4recVtxs)[0].tError() < 0) {
+	  timediffless3_->Fill(fabs(cand.time() - (*Dim4recVtxs)[0].t())/cand.timeError(),genEvtWeight_);
+	}
       }
+	//printf("constituent %3d: pt %6.2f, pdgId %+3d time %6.2f timeError %6.2f\n", i2,cand.pt(),cand.pdgId(),cand.time(),cand.timeError());
     }
-    else if (RealJets == 0 && ijet->pt() > 20) {
+    else if (RealJets == 1 && ijet->pt() > 20 && dRmin > 0.4 && fabs(ijet->partonFlavour()) == 0) {
       std::vector<reco::CandidatePtr> daus(ijet->daughterPtrVector());
       std::sort(daus.begin(), daus.end(), [](const reco::CandidatePtr &p1, const reco::CandidatePtr &p2) { return p1->pt() > p2->pt(); });
       for (unsigned int i2 = 0; i2 < daus.size(); ++i2) {
         const pat::PackedCandidate &cand = dynamic_cast<const pat::PackedCandidate &>(*daus[i2]);
         candtimepj_->Fill(cand.time(),genEvtWeight_);
         candtimerrpj_->Fill(cand.timeError(),genEvtWeight_);
+	
 	if (Dim4recVtxs->size() > 0 && cand.timeError() > 0 && (*Dim4recVtxs)[0].tError() > 0) {
-          timediffpj_->Fill(abs(cand.time() - (*Dim4recVtxs)[0].t())/cand.timeError(),genEvtWeight_);
-          if (abs(cand.time() - (*Dim4recVtxs)[0].t())/cand.timeError() < 3.0) {
-            timediffless3pj_->Fill(abs(cand.time() - (*Dim4recVtxs)[0].t())/cand.timeError(),genEvtWeight_);
-          }
+          timediffpj_->Fill(fabs(cand.time() - (*Dim4recVtxs)[0].t())/cand.timeError(),genEvtWeight_);
+	}
+	if (fabs(cand.time() - (*Dim4recVtxs)[0].t())/cand.timeError() < 3.0 || cand.timeError() < 0 || (*Dim4recVtxs)[0].tError() < 0) {
+	  timediffless3pj_->Fill(fabs(cand.time() - (*Dim4recVtxs)[0].t())/cand.timeError(),genEvtWeight_);
 	}
       }
     }
-    bool isLeptonMatched(false);
+
+  bool isLeptonMatched(false);
     float DRmax = 0.4;
     for(auto & lep: myLeptons) if( deltaR(lep->eta(),lep->phi(),ijet->eta(),ijet->phi()) < DRmax ) isLeptonMatched = true;
     if (isLeptonMatched) continue;
