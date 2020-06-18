@@ -1,0 +1,4 @@
+pluginPUjetID_plugins.so EventCounter CMS%EDM%Framework%Module
+pluginPUjetID_plugins.so EventCounter CMS%EDM%Framework%ParameterSet%Description
+pluginPUjetID_plugins.so JMEFlatTreeProducer CMS%EDM%Framework%Module
+pluginPUjetID_plugins.so JMEFlatTreeProducer CMS%EDM%Framework%ParameterSet%Description

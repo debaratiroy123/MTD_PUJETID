@@ -1,0 +1,2 @@
+01:/usr/bin/rm -f lib/slc7_amd64_gcc700/pluginPUJetID2016pujetidAuto.so lib/slc7_amd64_gcc700/PUJetID2016pujetidAuto.edmplugin
+90:edmPluginRefresh lib/slc7_amd64_gcc700

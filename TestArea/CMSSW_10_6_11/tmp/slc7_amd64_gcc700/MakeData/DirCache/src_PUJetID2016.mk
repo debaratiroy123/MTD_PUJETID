@@ -1,0 +1,2 @@
+ALL_SUBSYSTEMS+=PUJetID2016
+subdirs_src_PUJetID2016 = src_PUJetID2016_pujetid

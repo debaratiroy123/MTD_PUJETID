@@ -1,0 +1,4 @@
+<tool name="tensorflow-tf2xla" version="2.1.0-bcolbf2">
+  <lib name="tf2xla"/>
+  <use name="tensorflow"/>
+</tool>

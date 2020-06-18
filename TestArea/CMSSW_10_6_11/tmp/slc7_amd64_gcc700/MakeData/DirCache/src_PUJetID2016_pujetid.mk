@@ -1,0 +1,2 @@
+ALL_PACKAGES += PUJetID2016/pujetid
+subdirs_src_PUJetID2016_pujetid := src_PUJetID2016_pujetid_plugins src_PUJetID2016_pujetid_python src_PUJetID2016_pujetid_test
