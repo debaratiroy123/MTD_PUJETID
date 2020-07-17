@@ -1,0 +1,2 @@
+ALL_SUBSYSTEMS+=PUjetID
+subdirs_src_PUjetID = src_PUjetID_pileupJetId
