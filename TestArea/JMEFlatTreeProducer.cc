@@ -47,32 +47,6 @@ void JMEFlatTreeProducer::beginJob()
   
   cutFlowHisto_ = fs_->make<TH1F>("CutFlow","CutFlow",1,0,1);
   cutFlowHisto_->SetCanExtend(TH1::kAllAxes);
-  
-  candtimerr_ = fs_->make<TH1F>("cand.timeError()","cand.timeError()",100,-1.5,1.5);
-  candtimerr_->SetCanExtend(TH1::kAllAxes);
-  candtime_ = fs_->make<TH1F>("cand.time()","cand.time()",100,-1.0,1.0);
-  candtime_->SetCanExtend(TH1::kAllAxes);
-  timediff_ = fs_->make<TH1F>("timediff", "timediff", 100, 0.0, 200.0);
-  timediffless3_ = fs_->make<TH1F>("timediffless3", "timediffless3", 100, 0.0, 3.0);
-
-  candtimerrpj_ = fs_->make<TH1F>("cand.timeError().pujet","cand.timeError().pujet",100,-1.5,1.5);
-  candtimerrpj_->SetCanExtend(TH1::kAllAxes);
-  candtimepj_ = fs_->make<TH1F>("cand.time().pujet","cand.time().pujet",100,-1.0,1.0);
-  candtimepj_->SetCanExtend(TH1::kAllAxes);
-  timediffpj_ = fs_->make<TH1F>("timediff.pujet", "timediff.pujet", 100, 0.0, 200.0);
-  timediffless3pj_ = fs_->make<TH1F>("timediffless3.pujet", "timediffless3.pujet", 100, 0.0, 3.0);
-  
-  vtxtime_ = fs_->make<TH1F>("vtx.time()","vtx.time()",100,-1.0,1.0);
-  vtxtime_->SetCanExtend(TH1::kAllAxes);
-
-  vtxtimerr_ = fs_->make<TH1F>("vtx.timeError()","vtx.timeError()",100,-1.5,1.5);
-  vtxtimerr_->SetCanExtend(TH1::kAllAxes);
-
-  vtx0timerr_ = fs_->make<TH1F>("vtx0.timeError()","vtx0.timeError()",100,-1.5,1.5);
-  vtx0timerr_->SetCanExtend(TH1::kAllAxes);
-
-  vtx0time_ = fs_->make<TH1F>("vtx0.time()","vtx0.time()",100,-1.0,1.0);
-  vtx0time_->SetCanExtend(TH1::kAllAxes);
 
  //--- book the tree -----------------------
   outTree_ = fs_->make<TTree>("events","events");
@@ -91,6 +65,7 @@ void JMEFlatTreeProducer::beginJob()
   outTree_->Branch("llPhi"                ,&llPhi_             ,"llPhi_/F");
   outTree_->Branch("llRapidity"           ,&llRapidity_        ,"llRapidity_/F");
   outTree_->Branch("dPhiZJ"               ,&dPhiZJ_            ,"dPhiZJ_/F");
+  outTree_->Branch("Event_time"           ,&event_time_        ,"Event_time/F");
   outTree_->Branch("isZEvent"             ,&isZEvent_          ,"isZEvent_/O");
   //------------------------------------------------------------------
   pt_             = new std::vector<float>;
@@ -142,6 +117,20 @@ void JMEFlatTreeProducer::beginJob()
   lPhi_           = new std::vector<float>;
   lE_             = new std::vector<float>;
   lIso_           = new std::vector<float>;
+  jet_time_       = new std::vector<float>;
+  PFcandtime_       = new std::vector<std::vector<float>>;
+  PFcandtimerr_     = new std::vector<std::vector<float>>;
+  PFcand_           = new std::vector<std::vector<TLorentzVector>>;
+  Vtxtime_        = new std::vector<float>;
+  Vtxtimerr_      = new std::vector<float>;
+
+  outTree_->Branch("Jet_time"         ,"vector<float>"   ,&jet_time_);
+  outTree_->Branch("PFcandtime"       ,"vector<vector<float>>" ,&PFcandtime_);     
+  outTree_->Branch("PFcandtimerr_"    ,"vector<vector<float>>" ,&PFcandtimerr_);
+  outTree_->Branch("PFcand_"          ,"vector<vector<TLorentzVector>>" ,&PFcand_);
+  outTree_->Branch("Vtxtime_"         ,"vector<float>"  ,&Vtxtime_);
+  outTree_->Branch("Vtxtimerr_"       ,"vector<float>"  ,&Vtxtimerr_);
+
   outTree_->Branch("jetPt"             ,"vector<float>"     ,&pt_);
   outTree_->Branch("btag"              ,"vector<float>"     ,&btag_);  
   outTree_->Branch("jetEta"            ,"vector<float>"     ,&eta_);
@@ -212,6 +201,12 @@ void JMEFlatTreeProducer::beginJob()
 //////////////////////////////////////////////////////////////////////////////////////////
 void JMEFlatTreeProducer::endJob() 
 {  
+  delete jet_time_;
+  delete PFcandtime_;
+  delete PFcandtimerr_;
+  delete PFcand_;
+  delete Vtxtime_;
+  delete Vtxtimerr_;
   delete pt_;
   delete btag_;
   delete eta_;
@@ -351,8 +346,6 @@ void JMEFlatTreeProducer::analyze(edm::Event const& iEvent, edm::EventSetup cons
     }
   }
   vector<const reco::Candidate *> myLeptons;
-  //std::cout << " Dim4 vtx " << Dim4recVtxs->size() << std::endl;
-  //std::cout << " vtx " << recVtxs->size() << std::endl;
 
   if (recVtxs->size() > 0) {
 
@@ -385,156 +378,210 @@ void JMEFlatTreeProducer::analyze(edm::Event const& iEvent, edm::EventSetup cons
     llRapidity_ = (p4lep1 + p4lep2).Rapidity();
   }
   
-  for(unsigned int vtx = 0; vtx < Dim4recVtxs->size(); ++vtx) 
+   for(unsigned int vtx = 0; vtx < Dim4recVtxs->size(); ++vtx) 
     {
-      vtxtimerr_->Fill((*Dim4recVtxs)[vtx].tError(),genEvtWeight_);
-      vtxtime_->Fill((*Dim4recVtxs)[vtx].t(),genEvtWeight_);
+      Vtxtime_->push_back((*Dim4recVtxs)[vtx].t());
+      Vtxtimerr_->push_back((*Dim4recVtxs)[vtx].tError());
     }
-  if (Dim4recVtxs->size() > 0) {
-    vtx0time_->Fill((*Dim4recVtxs)[0].t(),genEvtWeight_);
-    vtx0timerr_->Fill((*Dim4recVtxs)[0].tError(),genEvtWeight_);
-  }
+   
+   //----- PF jets ------------------------------
+   float event_time       = 0;
+   float event_timeWeight = 0;
+   float event_timeNtk    = 0;
+   
+   
 
-  //----- PF jets ------------------------------
-  for(pat::JetCollection::const_iterator ijet =jets->begin();ijet != jets->end(); ++ijet) {  
-    bool RealJets(false);
-    double dRmin = 1000;
-    for(reco::GenJetCollection::const_iterator igen = genjets->begin();igen != genjets->end(); ++igen) {
-      float dR = deltaR(ijet->eta(),ijet->phi(),igen->eta(),igen->phi());
-      if (dR < dRmin) {
-	dRmin = dR;
-	RealJets = true;
-      }
-    }
-    if (RealJets == 1 && ijet->pt() > 20 && dRmin < 0.2) {
-      std::vector<reco::CandidatePtr> daus(ijet->daughterPtrVector());
-      std::sort(daus.begin(), daus.end(), [](const reco::CandidatePtr &p1, const reco::CandidatePtr &p2) { return p1->pt() > p2->pt(); });
-      //for (unsigned int i2 = 0, n = daus.size(); i2 < n && i2 <= 3; ++i2) {
-      for (unsigned int i2 = 0; i2 < daus.size(); ++i2) {
-	const pat::PackedCandidate &cand = dynamic_cast<const pat::PackedCandidate &>(*daus[i2]);
-	candtime_->Fill(cand.time(),genEvtWeight_);
-	candtimerr_->Fill(cand.timeError(),genEvtWeight_);
-	//std::cout << cand.vertexRef().t() << " vertex refer. t check" << std::endl;
-	if (Dim4recVtxs->size() > 0 && cand.timeError() > 0 && (*Dim4recVtxs)[0].tError() > 0) {
-	  timediff_->Fill(fabs(cand.time() - (*Dim4recVtxs)[0].t())/cand.timeError(),genEvtWeight_);
-	}
-	if (fabs(cand.time() - (*Dim4recVtxs)[0].t())/cand.timeError() < 3.0 || cand.timeError() < 0 || (*Dim4recVtxs)[0].tError() < 0) {
-	  timediffless3_->Fill(fabs(cand.time() - (*Dim4recVtxs)[0].t())/cand.timeError(),genEvtWeight_);
-	}
-      }
-	//printf("constituent %3d: pt %6.2f, pdgId %+3d time %6.2f timeError %6.2f\n", i2,cand.pt(),cand.pdgId(),cand.time(),cand.timeError());
-    }
-    else if (RealJets == 1 && ijet->pt() > 20 && dRmin > 0.4 && fabs(ijet->partonFlavour()) == 0) {
-      std::vector<reco::CandidatePtr> daus(ijet->daughterPtrVector());
-      std::sort(daus.begin(), daus.end(), [](const reco::CandidatePtr &p1, const reco::CandidatePtr &p2) { return p1->pt() > p2->pt(); });
-      for (unsigned int i2 = 0; i2 < daus.size(); ++i2) {
-        const pat::PackedCandidate &cand = dynamic_cast<const pat::PackedCandidate &>(*daus[i2]);
-        candtimepj_->Fill(cand.time(),genEvtWeight_);
-        candtimerrpj_->Fill(cand.timeError(),genEvtWeight_);
-	
-	if (Dim4recVtxs->size() > 0 && cand.timeError() > 0 && (*Dim4recVtxs)[0].tError() > 0) {
-          timediffpj_->Fill(fabs(cand.time() - (*Dim4recVtxs)[0].t())/cand.timeError(),genEvtWeight_);
-	}
-	if (fabs(cand.time() - (*Dim4recVtxs)[0].t())/cand.timeError() < 3.0 || cand.timeError() < 0 || (*Dim4recVtxs)[0].tError() < 0) {
-	  timediffless3pj_->Fill(fabs(cand.time() - (*Dim4recVtxs)[0].t())/cand.timeError(),genEvtWeight_);
-	}
-      }
-    }
+   for(pat::JetCollection::const_iterator ijet =jets->begin();ijet != jets->end(); ++ijet) {
+     //try with different access//
+     std::cout << " daughters " << ijet->numberOfDaughters() << std::endl;
+     for (unsigned int i = 0; i <  ijet->numberOfDaughters(); i++) {
+       const pat::PackedCandidate* PackedCandidate = dynamic_cast<const pat::PackedCandidate*>(ijet->daughter(i));
+       if ( !PackedCandidate ) continue;
+       if ( PackedCandidate->charge() == 0 ) continue;
+       auto track = PackedCandidate->bestTrack();
+       if ( !track ) continue;
+       //float track_dxy = track->dxy(pv->position());
+       //float track_dz  = track->dz(pv->position());
+       float track_time    = track->t0();
+       float track_timeError = track->covt0t0();
+       std::cout << " track_time " << track_time << " " << " track_timeError " << track_timeError << std::endl;
+     }
+   }
+   /*
+     std::vector<reco::CandidatePtr> daus(ijet->daughterPtrVector());
+     std::sort(daus.begin(), daus.end(), [](const reco::CandidatePtr &p1, const reco::CandidatePtr &p2) { return p1->pt() > p2->pt(); });
+     for (unsigned int i2 = 0; i2 < daus.size(); ++i2) {
+       const pat::PackedCandidate &cand = dynamic_cast<const pat::PackedCandidate &>(*daus[i2]);
+       if (cand.charge() != 0) {
+	 auto track = cand.bestTrack();
+	 if ( track ) {
+	   
+	   float track_dxy = track->dxy((*recVtxs)[0].position());
+	   float track_dz  = track->dz((*recVtxs)[0].position());
+	   float track_time    = track->t0();
+	   float track_timeError = track->covt0t0();
+	   //if (track_timeError != -1.) std::cout << " track_timeError " << track_timeError << std::endl;
+	   float track_pt    = track->pt();
+	   float time_weight = track_pt * track_pt;
+	   
+	   if ( track_timeError > 0. && abs(track_time) < 1 && abs(track_dxy) < 0.05 && abs(track_dz) < 0.10 ) {
+	   //if ( track_timeError > 0. && abs(track_dxy) < 0.05 && abs(track_dz) < 0.10 ) {  
+	     if (abs(track_time) < 1 && fabs(track_dxy) < 0.05 && fabs(track_dz) < 0.10 ) {
+	       event_timeNtk    += 1;
+	       event_timeWeight += time_weight;
+	       event_time       += track_time * time_weight;
+	     }
+	   }
+	 }
+       }
+     }
+   */
+   //std::cout << " event_timeNtk " << event_timeNtk << std::endl;
+   //if ( event_timeNtk > 0 ) event_time /= event_timeWeight;
+   //else                     event_time = -1;
+   //event_time_ = event_time;
 
-  bool isLeptonMatched(false);
-    float DRmax = 0.4;
-    for(auto & lep: myLeptons) if( deltaR(lep->eta(),lep->phi(),ijet->eta(),ijet->phi()) < DRmax ) isLeptonMatched = true;
-    if (isLeptonMatched) continue;
-    chf_           ->push_back(ijet->chargedHadronEnergyFraction());
-    cemf_          ->push_back(ijet->chargedEmEnergyFraction());
-    nemf_          ->push_back(ijet->neutralEmEnergyFraction());
-    nhf_           ->push_back(ijet->neutralHadronEnergyFraction());
-    phf_           ->push_back(ijet->photonEnergyFraction());
-    elf_           ->push_back(ijet->electronEnergyFraction());
-    muf_           ->push_back(ijet->muonEnergyFraction());
-    hHFf_          ->push_back(ijet->HFHadronEnergyFraction());
-    eHFf_          ->push_back(ijet->HFEMEnergyFraction());
-    npr_           ->push_back(ijet->neutralMultiplicity()+ijet->chargedMultiplicity());
-    chm_           ->push_back(ijet->chargedHadronMultiplicity());
-    nhm_           ->push_back(ijet->neutralHadronMultiplicity());
-    phm_           ->push_back(ijet->photonMultiplicity());
-    elm_           ->push_back(ijet->electronMultiplicity());
-    mum_           ->push_back(ijet->muonMultiplicity());
-    hHFm_          ->push_back(ijet->HFHadronMultiplicity());
-    eHFm_          ->push_back(ijet->HFEMMultiplicity());
-    pt_            ->push_back(ijet->pt());
-    phi_           ->push_back(ijet->phi());
-    eta_           ->push_back(ijet->eta());
-    mass_          ->push_back(ijet->mass());
-    energy_        ->push_back(ijet->energy());
-    btag_          ->push_back(ijet->bDiscriminator(srcBtag_.c_str()));
-  
-    edm::RefToBase<pat::Jet> jetRef(edm::Ref<pat::JetCollection>(jets, ijet-jets->begin()));
+   for(pat::JetCollection::const_iterator ijet =jets->begin();ijet != jets->end(); ++ijet) {  
 
-    pumva_         ->push_back((*pileupJetIdDiscriminant)[jetRef]);
-    int idflag = (*pileupJetIdFlag)[jetRef];
-    puIdLoose_     ->push_back(PileupJetIdentifier::passJetId(idflag, PileupJetIdentifier::kLoose));
-    puIdMedium_    ->push_back(PileupJetIdentifier::passJetId(idflag, PileupJetIdentifier::kMedium));
-    puIdTight_     ->push_back(PileupJetIdentifier::passJetId(idflag, PileupJetIdentifier::kTight));
-    dR2Mean_       ->push_back((*pileupJetId)[jetRef].dR2Mean());
-    majW_          ->push_back((*pileupJetId)[jetRef].majW());
-    minW_          ->push_back((*pileupJetId)[jetRef].minW());
-    frac01_        ->push_back((*pileupJetId)[jetRef].frac01());
-    frac02_        ->push_back((*pileupJetId)[jetRef].frac02());
-    frac03_        ->push_back((*pileupJetId)[jetRef].frac03());
-    frac04_        ->push_back((*pileupJetId)[jetRef].frac04());
-    ptD_           ->push_back((*pileupJetId)[jetRef].ptD());
-    beta_          ->push_back((*pileupJetId)[jetRef].beta());
-    betaStar_      ->push_back((*pileupJetId)[jetRef].betaStar());
-    pull_          ->push_back((*pileupJetId)[jetRef].pull());
-    jetR_          ->push_back((*pileupJetId)[jetRef].jetR());
-    jetRchg_       ->push_back((*pileupJetId)[jetRef].jetRchg());
-    nParticles_    ->push_back((*pileupJetId)[jetRef].nParticles());
-    nCharged_      ->push_back((*pileupJetId)[jetRef].nCharged());
-    nNeutral_      ->push_back(ijet->neutralMultiplicity());
-  
-    if (!iEvent.isRealData()) {
-      float dRmin = 100.;
-      float ptGen = -1.0;
-      for(reco::GenJetCollection::const_iterator igen = genjets->begin();igen != genjets->end(); ++igen) {
-        float dR = deltaR(ijet->eta(),ijet->phi(),igen->eta(),igen->phi());
-        if (dR < dRmin) {
-          dRmin = dR;
-          ptGen = igen->pt();
-        }
-      }
-      genDR_->push_back(dRmin);
-      genPt_->push_back(ptGen); 
-      flavorParton_  ->push_back(ijet->partonFlavour());
-      flavorHadron_  ->push_back(ijet->hadronFlavour());
-    }
-  }// jet loop   
-  nJets_  = pt_->size();    
-  rho_    = *rho;
-  met_    = (*met)[0].et();
-  sumet_  = (*met)[0].sumEt();
-  nVtx_   = recVtxs->size();
-  run_    = iEvent.id().run();
-  evt_    = iEvent.id().event();
-  lumi_   = iEvent.id().luminosityBlock();
-  if ((nLeptons_ > 1) && (llMass_ > minLLMass_) && (llMass_ < maxLLMass_)) {
-    if ((*lId_)[0]*(*lId_)[1]/fabs((*lId_)[0]*(*lId_)[1]) == -1) {
-      isZEvent_ = true; 
-    }
-  }
-  cutFlowHisto_->Fill("all",1);
-  if ((nJets_ > 0)) {outTree_->Fill();}
-  if (passTrigger) {
-    cutFlowHisto_->Fill("trigger",1);
-    if (isZEvent_) {
-      cutFlowHisto_->Fill("Z",1);
-      if ((nJets_ > 0)) {
-        cutFlowHisto_->Fill("nJets",1);
-        dPhiZJ_ = fabs(deltaPhi(llPhi_,(*phi_)[0]));
-        //outTree_->Fill();  
-      }
-    }
-  }
+     float jet_time       = 0;
+     float jet_timeWeight = 0;
+     float jet_timeNtk    = 0;
+
+     std::vector<float> PFijetcandtime, PFijetcandtimerr;
+     std::vector<TLorentzVector> candv;
+     std::vector<reco::CandidatePtr> daus(ijet->daughterPtrVector());
+     
+     std::sort(daus.begin(), daus.end(), [](const reco::CandidatePtr &p1, const reco::CandidatePtr &p2) { return p1->pt() > p2->pt(); });
+       for (unsigned int i2 = 0; i2 < daus.size(); ++i2) {
+	 const pat::PackedCandidate &cand = dynamic_cast<const pat::PackedCandidate &>(*daus[i2]);
+	 if (cand.charge() != 0) {
+	   auto track = cand.bestTrack();
+	   if ( track ) {
+	     float track_time    = track->t0();
+	     float track_timeError = track->covt0t0();
+	     float track_pt    = track->pt();
+	     float time_weight = track_pt * track_pt;
+	     
+	     if ( track_timeError > 0. && abs(track_time) < 1 ) {
+	       jet_timeNtk += 1;
+	       jet_timeWeight += time_weight;
+	       jet_time += track_time * time_weight;
+	     }
+	   }
+	 }
+
+	 PFijetcandtime.push_back(cand.time());
+	 PFijetcandtimerr.push_back(cand.timeError());
+	 TLorentzVector cand_kin;
+	 cand_kin.SetPtEtaPhiE(cand.pt(),cand.eta(),cand.phi(),cand.energy());
+	 candv.push_back(cand_kin);
+       }
+       
+       //  if ( jet_timeNtk > 0 && event_timeNtk > 0 ) {
+       //jet_time = jet_time / jet_timeWeight - event_time;
+       //jet_time = TMath::Abs(jet_time);
+       //}
+       //else jet_time = -1;
+       //jet_time_->push_back(jet_time);
+   
+       bool isLeptonMatched(false);
+       float DRmax = 0.4;
+       for(auto & lep: myLeptons) if( deltaR(lep->eta(),lep->phi(),ijet->eta(),ijet->phi()) < DRmax ) isLeptonMatched = true;
+       if (isLeptonMatched) continue;
+       chf_           ->push_back(ijet->chargedHadronEnergyFraction());
+       cemf_          ->push_back(ijet->chargedEmEnergyFraction());
+       nemf_          ->push_back(ijet->neutralEmEnergyFraction());
+       nhf_           ->push_back(ijet->neutralHadronEnergyFraction());
+       phf_           ->push_back(ijet->photonEnergyFraction());
+       elf_           ->push_back(ijet->electronEnergyFraction());
+       muf_           ->push_back(ijet->muonEnergyFraction());
+       hHFf_          ->push_back(ijet->HFHadronEnergyFraction());
+       eHFf_          ->push_back(ijet->HFEMEnergyFraction());
+       npr_           ->push_back(ijet->neutralMultiplicity()+ijet->chargedMultiplicity());
+       chm_           ->push_back(ijet->chargedHadronMultiplicity());
+       nhm_           ->push_back(ijet->neutralHadronMultiplicity());
+       phm_           ->push_back(ijet->photonMultiplicity());
+       elm_           ->push_back(ijet->electronMultiplicity());
+       mum_           ->push_back(ijet->muonMultiplicity());
+       hHFm_          ->push_back(ijet->HFHadronMultiplicity());
+       eHFm_          ->push_back(ijet->HFEMMultiplicity());
+       pt_            ->push_back(ijet->pt());
+       phi_           ->push_back(ijet->phi());
+       eta_           ->push_back(ijet->eta());
+       mass_          ->push_back(ijet->mass());
+       energy_        ->push_back(ijet->energy());
+       btag_          ->push_back(ijet->bDiscriminator(srcBtag_.c_str()));
+       
+       edm::RefToBase<pat::Jet> jetRef(edm::Ref<pat::JetCollection>(jets, ijet-jets->begin()));
+       
+       pumva_         ->push_back((*pileupJetIdDiscriminant)[jetRef]);
+       int idflag = (*pileupJetIdFlag)[jetRef];
+       puIdLoose_     ->push_back(PileupJetIdentifier::passJetId(idflag, PileupJetIdentifier::kLoose));
+       puIdMedium_    ->push_back(PileupJetIdentifier::passJetId(idflag, PileupJetIdentifier::kMedium));
+       puIdTight_     ->push_back(PileupJetIdentifier::passJetId(idflag, PileupJetIdentifier::kTight));
+       dR2Mean_       ->push_back((*pileupJetId)[jetRef].dR2Mean());
+       majW_          ->push_back((*pileupJetId)[jetRef].majW());
+       minW_          ->push_back((*pileupJetId)[jetRef].minW());
+       frac01_        ->push_back((*pileupJetId)[jetRef].frac01());
+       frac02_        ->push_back((*pileupJetId)[jetRef].frac02());
+       frac03_        ->push_back((*pileupJetId)[jetRef].frac03());
+       frac04_        ->push_back((*pileupJetId)[jetRef].frac04());
+       ptD_           ->push_back((*pileupJetId)[jetRef].ptD());
+       beta_          ->push_back((*pileupJetId)[jetRef].beta());
+       betaStar_      ->push_back((*pileupJetId)[jetRef].betaStar());
+       pull_          ->push_back((*pileupJetId)[jetRef].pull());
+       jetR_          ->push_back((*pileupJetId)[jetRef].jetR());
+       jetRchg_       ->push_back((*pileupJetId)[jetRef].jetRchg());
+       nParticles_    ->push_back((*pileupJetId)[jetRef].nParticles());
+       nCharged_      ->push_back((*pileupJetId)[jetRef].nCharged());
+       nNeutral_      ->push_back(ijet->neutralMultiplicity());
+   
+       if (!iEvent.isRealData()) {
+	 float dRmin = 100.;
+	 float ptGen = -1.0;
+	 for(reco::GenJetCollection::const_iterator igen = genjets->begin();igen != genjets->end(); ++igen) {
+	   float dR = deltaR(ijet->eta(),ijet->phi(),igen->eta(),igen->phi());
+	   if (dR < dRmin) {
+	     dRmin = dR;
+	     ptGen = igen->pt();
+	   }
+	 }
+	 genDR_->push_back(dRmin);
+	 genPt_->push_back(ptGen); 
+	 flavorParton_  ->push_back(ijet->partonFlavour());
+	 flavorHadron_  ->push_back(ijet->hadronFlavour());
+       }
+       PFcandtime_->push_back(PFijetcandtime);
+       PFcandtimerr_->push_back(PFijetcandtimerr);
+       PFcand_->push_back(candv);
+   }// jet loop 
+     
+   nJets_  = pt_->size();    
+   rho_    = *rho;
+   met_    = (*met)[0].et();
+   sumet_  = (*met)[0].sumEt();
+   nVtx_   = recVtxs->size();
+   run_    = iEvent.id().run();
+   evt_    = iEvent.id().event();
+   lumi_   = iEvent.id().luminosityBlock();
+   if ((nLeptons_ > 1) && (llMass_ > minLLMass_) && (llMass_ < maxLLMass_)) {
+  if ((*lId_)[0]*(*lId_)[1]/fabs((*lId_)[0]*(*lId_)[1]) == -1) {
+    isZEvent_ = true; 
+     }
+   }
+   cutFlowHisto_->Fill("all",1);
+   if ((nJets_ > 0)) {outTree_->Fill();}
+   if (passTrigger) {
+     cutFlowHisto_->Fill("trigger",1);
+     if (isZEvent_) {
+       cutFlowHisto_->Fill("Z",1);
+       if ((nJets_ > 0)) {
+	 cutFlowHisto_->Fill("nJets",1);
+	 dPhiZJ_ = fabs(deltaPhi(llPhi_,(*phi_)[0]));
+	 //outTree_->Fill();  
+       }
+     }
+   }
 }
 //////////////////////////////////////////////////////////////////////////////////////////
 void JMEFlatTreeProducer::initialize()
@@ -554,7 +601,14 @@ void JMEFlatTreeProducer::initialize()
   llPhi_          = -10;
   llRapidity_     = -10;
   dPhiZJ_         = -1;
+  event_time_     = 0;
   isZEvent_       = false;
+  jet_time_       ->clear();
+  PFcandtime_     ->clear();
+  PFcandtimerr_   ->clear();
+  PFcand_         ->clear();
+  Vtxtime_        ->clear();
+  Vtxtimerr_      ->clear();
   pt_             ->clear();
   eta_            ->clear();
   phi_            ->clear();

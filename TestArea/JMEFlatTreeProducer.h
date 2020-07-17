@@ -81,6 +81,8 @@ class JMEFlatTreeProducer : public edm::EDAnalyzer
     bool  isZEvent_;
     int   run_,evt_,nVtx_,lumi_,nLeptons_,nJets_;
     float rho_,met_,pvz_,sumet_,llMass_,llPt_,llPhi_,llRapidity_,dPhiZJ_;
+    float event_time_;
+    
     std::vector<bool>  *puIdLoose_,*puIdMedium_,*puIdTight_;
     std::vector<int>   *flavorParton_,*flavorHadron_,*npr_,*chm_,*nhm_,*phm_,*elm_,*mum_;
     std::vector<float> *pt_,*eta_,*phi_,*mass_,*energy_,*chf_,*nhf_,*nemf_,*cemf_,*phf_,*elf_,*muf_,*btag_,*pumva_;
@@ -88,6 +90,11 @@ class JMEFlatTreeProducer : public edm::EDAnalyzer
     std::vector<int>   *hHFm_,*eHFm_;
     std::vector<float> *genDR_,*genPt_;
     std::vector<float> *dR2Mean_,*majW_,*minW_,*frac01_,*frac02_,*frac03_,*frac04_,*ptD_,*beta_,*betaStar_,*pull_,*jetR_,*jetRchg_;
+    std::vector<float> *Vtxtime_, *Vtxtimerr_;
+    std::vector<float> *jet_time_;
+    std::vector<std::vector<float>> *PFcandtime_, *PFcandtimerr_;
+    std::vector<std::vector<TLorentzVector>> *PFcand_;
+
     std::vector<int>   *nParticles_,*nCharged_,*nNeutral_;
     //---- lepton variables -----------
     std::vector<int>   *lId_;

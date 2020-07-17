@@ -1,9 +1,14 @@
 import FWCore.ParameterSet.Config as cms 
 process = cms.Process('myprocess')
-process.TFileService=cms.Service("TFileService",fileName=cms.string('mc_flatTreecmssw11Time.root'))
+#process.TFileService=cms.Service("TFileService",fileName=cms.string('mc_flatTreecmssw11Time.root'))
+#process.TFileService=cms.Service("TFileService",fileName=cms.string('mc_testTimev2NoPU.root'))
+#process.TFileService=cms.Service("TFileService",fileName=cms.string('mc_testTimev3NoPU.root'))
+#process.TFileService=cms.Service("TFileService",fileName=cms.string('mc_testTimev3200PU_btagvar.root'))
+process.TFileService=cms.Service("TFileService",fileName=cms.string('btagvar.root'))
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff')
 #process.GlobalTag.globaltag = '106X_mc2017_realistic_v7'
-process.GlobalTag.globaltag = '110X_mcRun4_realistic_v3'
+#process.GlobalTag.globaltag = '110X_mcRun4_realistic_v3'
+process.GlobalTag.globaltag = '106X_upgrade2023_realistic_v3'
 
 #from CondCore.CondDB.CondDB_cfi import CondDB
 #CondDBJECFile = CondDB.clone(connect = cms.string('sqlite:Summer19UL17_V4_MC.db'))
@@ -23,10 +28,16 @@ process.GlobalTag.globaltag = '110X_mcRun4_realistic_v3'
 process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(-1))
 process.source = cms.Source("PoolSource",
   fileNames = cms.untracked.vstring(
- # "root://cmsxrootd.fnal.gov//store/mc/RunIISummer19UL17MiniAOD/DYJetsToLL_M-50_TuneCP5_13TeV-madgraphMLM-pythia8/MINIAODSIM/106X_mc2017_realistic_v6-v2/270000/2D49A682-ED93-6847-9911-BA3B843043D0.root"    
-  #"root://cmsxrootd.fnal.gov//store/relval/CMSSW_11_1_0_pre6/RelValQCD_Pt15To7000_Flat_14/MINIAODSIM/110X_mcRun4_realistic_v3_2026D49noPU-v1/20000/EB07E29D-6504-9649-B969-DCDD971A8A5D.root"
-   "root://cmsxrootd.fnal.gov//store/relval/CMSSW_11_1_0_pre6/RelValQCD_Pt15To7000_Flat_14/MINIAODSIM/PU25ns_110X_mcRun4_realistic_v3_2026D49PU200-v1/20000/A4D0EB1F-E579-E04E-827B-707675238708.root",
-   "root://cmsxrootd.fnal.gov//store/relval/CMSSW_11_1_0_pre6/RelValQCD_Pt15To7000_Flat_14/MINIAODSIM/PU25ns_110X_mcRun4_realistic_v3_2026D49PU200-v1/20000/00C8256D-526C-4943-AEA0-60CE0E2F9C5A.root"
+   "root://cmsxrootd.fnal.gov//store/mc/PhaseIITDRSpring19MiniAOD/QCD_Pt_80to120_TuneCP5_14TeV_pythia8/MINIAODSIM/PU200_106X_upgrade2023_realistic_v3-v1/10000/F6B0FDEE-D8EE-6E47-B522-8709EC3DE44A.root"
+      # "root://cmsxrootd.fnal.gov//store/mc/PhaseIITDRSpring19MiniAOD/QCD_Pt-15to3000_TuneCP5_Flat_14TeV-pythia8/MINIAODSIM/PU200_castor_106X_upgrade2023_realistic_v3-v2/30000/98794CC0-82CB-6441-9F2D-29B8682935E8.root",
+  #"root://cmsxrootd.fnal.gov//store/mc/PhaseIITDRSpring19MiniAOD/QCD_Pt-15to3000_TuneCP5_Flat_14TeV-pythia8/MINIAODSIM/PU200_castor_106X_upgrade2023_realistic_v3-v2/30000/F73A0D3B-B337-F347-9CE1-1389658ED9BF.root",
+  #"root://cmsxrootd.fnal.gov//store/mc/PhaseIITDRSpring19MiniAOD/QCD_Pt-15to3000_TuneCP5_Flat_14TeV-pythia8/MINIAODSIM/PU200_castor_106X_upgrade2023_realistic_v3-v2/30000/C6A9BA3F-A6CA-CF45-8540-7E377A43799C.root",
+  #"root://cmsxrootd.fnal.gov//store/mc/PhaseIITDRSpring19MiniAOD/QCD_Pt-15to3000_TuneCP5_Flat_14TeV-pythia8/MINIAODSIM/PU200_castor_106X_upgrade2023_realistic_v3-v2/60000/CFD31224-725E-0045-9C74-E71C76647A7D.root"    
+  #"root://cmsxrootd.fnal.gov//store/mc/PhaseIITDRSpring19MiniAOD/QCD_Pt-15to3000_TuneCP5_Flat_14TeV-pythia8/MINIAODSIM/PU200_castor_106X_upgrade2023_realistic_v3-v2/30000/F56A1062-F1F5-964C-AE92-1B829DE5BD88.root",
+  #"root://cmsxrootd.fnal.gov//store/mc/PhaseIITDRSpring19MiniAOD/QCD_Pt-15to3000_TuneCP5_Flat_14TeV-pythia8/MINIAODSIM/PU200_castor_106X_upgrade2023_realistic_v3-v2/30000/D1185F2F-FA0F-F24F-93D6-A06873E0D7CB.root"    
+#  "root://cmsxrootd.fnal.gov//store/relval/CMSSW_11_1_0_pre6/RelValQCD_Pt15To7000_Flat_14/MINIAODSIM/110X_mcRun4_realistic_v3_2026D49noPU-v1/20000/EB07E29D-6504-9649-B969-DCDD971A8A5D.root"
+  # "root://cmsxrootd.fnal.gov//store/relval/CMSSW_11_1_0_pre6/RelValQCD_Pt15To7000_Flat_14/MINIAODSIM/PU25ns_110X_mcRun4_realistic_v3_2026D49PU200-v1/20000/A4D0EB1F-E579-E04E-827B-707675238708.root",
+   #"root://cmsxrootd.fnal.gov//store/relval/CMSSW_11_1_0_pre6/RelValQCD_Pt15To7000_Flat_14/MINIAODSIM/PU25ns_110X_mcRun4_realistic_v3_2026D49PU200-v1/20000/00C8256D-526C-4943-AEA0-60CE0E2F9C5A.root"
   )
 )
 #############   Format MessageLogger #################
